@@ -4,25 +4,29 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Bilimlar Makoni — Qo'qon universiteti Andijon filiali</title>
-<!-- Firebase va Chart.js kutubxonalari -->
+<!-- Firebase kutubxonalari -->
 <script type="module">
   import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-app.js";
-  import { getDatabase, ref, set, onValue, remove, push } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-database.js";
+  import { getDatabase, ref, set, onValue, remove } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-database.js";
 
   const firebaseConfig = {
     apiKey: "AIzaSyCWQFpeaEsMoPGf2OanPRkOGW64LVwUDmE",
     authDomain: "bilimlar-makoni.firebaseapp.com",
-    databaseURL: "https://bilimlar-makoni-default-rtdb.firebaseio.com", // QO'SHILDI
+    databaseURL: "https://bilimlar-makoni-default-rtdb.firebaseio.com",
     projectId: "bilimlar-makoni",
     storageBucket: "bilimlar-makoni.firebasestorage.app",
     messagingSenderId: "392495870727",
-    appId: "1:392495870727:web:a5efc35120f37d5f04cba2",
-    measurementId: "G-199MVD0FDF"
+    appId: "1:392495870727:web:a5efc35120f37d5f04cba2"
   };
 
   const app = initializeApp(firebaseConfig);
   const db = getDatabase(app);
-  window.fbDB = db; // Globalga chiqaramiz, shunda oddiy scriptda ishlatamiz
+  
+  window.fbDB = db;
+  window.fbRef = ref;
+  window.fbSet = set;
+  window.fbOnValue = onValue;
+  window.fbRemove = remove;
 </script>
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
 <style>
@@ -183,84 +187,33 @@ td{padding:12px 10px;border-bottom:1px solid var(--border)}
   <main id="mainContent"></main>
 </div>
 
-<!-- BAHOLASH MODAL -->
+<!-- MODALLAR -->
 <div class="modal-overlay" id="scoreModal">
   <div class="modal-content">
     <h3>📝 Ekspert baholashi</h3>
     <div class="form-group"><label>Muallif:</label><input type="text" id="modalUserName" readonly style="background:#f3f4f6"></div>
     <div class="form-group"><label>Hammualliflar:</label><input type="text" id="modalCoAuthors" readonly style="background:#f3f4f6"></div>
     <div class="form-group"><label>Hujjat turi:</label><input type="text" id="modalDocName" readonly style="background:#f3f4f6"></div>
-    <div class="form-group">
-      <label style="color:var(--red)">Ekspert tomonidan beriladigan ball:</label>
-      <input type="number" id="modalScore" min="0" max="100" style="border:2px solid var(--red);font-size:18px;font-weight:bold" placeholder="Ballni kiriting...">
-      <small style="color:#6b7280;margin-top:5px">Tizim ushbu ballni asosiy muallifga, 50% ini esa hammualliflarga avtomatik qo'shadi.</small>
-    </div>
-    <div class="modal-buttons">
-      <button class="btn" style="background:#6b7280" onclick="closeModal()">Bekor qilish</button>
-      <button class="btn btn-green" onclick="confirmScore()">Tasdiqlash va Ballarni taqsimlash</button>
-    </div>
+    <div class="form-group"><label style="color:var(--red)">Ekspert tomonidan beriladigan ball:</label><input type="number" id="modalScore" min="0" max="100" style="border:2px solid var(--red);font-size:18px;font-weight:bold" placeholder="Ballni kiriting..."></div>
+    <div class="modal-buttons"><button class="btn" style="background:#6b7280" onclick="closeModal()">Bekor qilish</button><button class="btn btn-green" onclick="confirmScore()">Tasdiqlash</button></div>
   </div>
 </div>
 
-<!-- MENTORLIK JURNALI MODAL -->
-<div class="modal-overlay" id="mentorModal">
-  <div class="modal-content">
-    <h3>📔 Mentorlik jurnali (Uchrashuv qaydlari)</h3>
-    <div class="form-group"><label>Uchrashuv sanasi:</label><input type="date" id="mDate"></div>
-    <div class="form-group"><label>Mavzu va muhokama qilingan masalalar:</label><textarea id="mTopic" placeholder="Nimalar muhokama qilindi?"></textarea></div>
-    <div class="form-group"><label>Keyingi topshiriq va muddat:</label><input type="text" id="mTask" placeholder="Masalan: 1-bobni yozish (15-noyabr)"></div>
-    <div class="modal-buttons">
-      <button class="btn" style="background:#6b7280" onclick="closeMentorModal()">Bekor qilish</button>
-      <button class="btn btn-green" onclick="saveMentorLog()">Saqlash</button>
-    </div>
-  </div>
-</div>
-
-<!-- ORCID / SCOPUS INTEGRATSIYA MODAL -->
-<div class="modal-overlay" id="orcidModal">
-  <div class="modal-content">
-    <h3>🔗 Ilmiy ma'lumotlarni integratsiya qilish</h3>
-    <div class="form-group"><label>ORCID ID</label><input type="text" id="orcidId" placeholder="0000-0002-1825-0097"></div>
-    <div class="form-group"><label>Scopus Author ID</label><input type="text" id="scopusId" placeholder="57200000000"></div>
-    <div class="form-group"><label>Google Scholar havolasi</label><input type="text" id="scholarUrl" placeholder="https://scholar.google.com/..."></div>
-    <div class="modal-buttons">
-      <button class="btn" style="background:#6b7280" onclick="document.getElementById('orcidModal').style.display='none'">Bekor qilish</button>
-      <button class="btn btn-green" onclick="saveIntegration()">Ulang</button>
-    </div>
-  </div>
-</div>
-
-<!-- GRANT BATAFSIL MODAL -->
-<div class="modal-overlay" id="grantModal">
-  <div class="modal-content">
-    <h3 id="grantTitle">Grant ma'lumotlari</h3>
-    <div id="grantDetails" style="font-size:14px;line-height:1.6;color:#333;margin-bottom:20px;"></div>
-    <div class="modal-buttons">
-      <button class="btn btn-green" onclick="document.getElementById('grantModal').style.display='none'">Tushundim</button>
-    </div>
-  </div>
-</div>
-
-<!-- YANGI LOYIHA MODAL -->
 <div class="modal-overlay" id="projectModal">
   <div class="modal-content">
     <h3>📁 Yangi loyiha yaratish</h3>
     <div class="form-group"><label>Loyiha nomi</label><input type="text" id="projName" placeholder="Masalan: Yashil Kimyo"></div>
     <div class="form-group"><label>Rahbar (Ustoz)</label><input type="text" id="projOwner" placeholder="Ustozning FIO si"></div>
     <div class="form-group"><label>Byudjet / Grant</label><input type="text" id="projBudget" placeholder="Masalan: 50 mln so'm"></div>
-    <div class="modal-buttons">
-      <button class="btn" style="background:#6b7280" onclick="document.getElementById('projectModal').style.display='none'">Bekor qilish</button>
-      <button class="btn btn-green" onclick="saveProject()">Yaratish</button>
-    </div>
+    <div class="modal-buttons"><button class="btn" style="background:#6b7280" onclick="document.getElementById('projectModal').style.display='none'">Bekor qilish</button><button class="btn btn-green" onclick="saveProject()">Yaratish</button></div>
   </div>
 </div>
 
 <div class="toast-container" id="toastBox"></div>
 
 <script type="module">
-// Firebase ob'ektini olish
 const db = window.fbDB;
-const { ref, set, onValue, remove, push } = await import("https://www.gstatic.com/firebasejs/10.8.1/firebase-database.js");
+const { ref, set, onValue, remove } = await import("https://www.gstatic.com/firebasejs/10.8.1/firebase-database.js");
 
 const ALL_FIELDS = [
   "Kompyuter injiniringi", "IT", "Kimyo", "Biologiya", "Fizika", "Matematika", 
@@ -269,54 +222,34 @@ const ALL_FIELDS = [
   "Tibbiyot", "Jismoniy tarbiya", "Sport", "San'at", "Musiqa", "Turizm", "Pedagogika"
 ];
 
-const TIME_SLOTS = ["Dushanba", "Seshanba", "Chorshanba", "Payshanba", "Juma", "Shanba"];
-
-let DB = { users: [], docs: [], announcements: [], matches: [], mentorLogs: [], projects: [], isDemo: false };
+let DB = { users: [], docs: [], matches: [], projects: [], announcements: [] };
 let CURRENT_USER = null;
 let charts = {};
 const SCORE_RULES = { "Ilmiy maqola": 15, "Ilmiy tezis": 5, "Patent": 20, "DGU loyihasi": 20, "Til sertifikati (IELTS/CEFR)": 15, "Fan sertifikati": 10, "Sport yutuqlari": 5 };
-let RATING = [];
 let currentApproveDocId = null;
-let currentMentorMatchId = null;
+let currentPage = 'dashboard';
 
-// Firebase'dan ma'lumotlarni yuklash funksiyalari
-window.loadFirebaseData = async function() {
-  onValue(ref(db, 'users'), (snapshot) => {
-    const data = snapshot.val();
-    DB.users = data ? Object.values(data) : [];
-    if(CURRENT_USER && document.getElementById('menu-' + getCurrentPage())) navigate(getCurrentPage());
-  });
-  onValue(ref(db, 'docs'), (snapshot) => {
-    const data = snapshot.val();
-    DB.docs = data ? Object.values(data) : [];
-  });
-  onValue(ref(db, 'matches'), (snapshot) => {
-    const data = snapshot.val();
-    DB.matches = data ? Object.values(data) : [];
-  });
-  onValue(ref(db, 'mentorLogs'), (snapshot) => {
-    const data = snapshot.val();
-    DB.mentorLogs = data ? Object.values(data) : [];
-  });
-  onValue(ref(db, 'projects'), (snapshot) => {
-    const data = snapshot.val();
-    DB.projects = data ? Object.values(data) : [];
-  });
-  onValue(ref(db, 'announcements'), (snapshot) => {
-    const data = snapshot.val();
-    DB.announcements = data ? Object.values(data) : [];
-  });
-};
+// Firebase'dan ma'lumotlarni yuklash
+onValue(ref(db, 'users'), (snapshot) => { DB.users = snapshot.val() ? Object.values(snapshot.val()) : []; if(CURRENT_USER) renderCurrentPage(); });
+onValue(ref(db, 'docs'), (snapshot) => { DB.docs = snapshot.val() ? Object.values(snapshot.val()) : []; if(CURRENT_USER) renderCurrentPage(); });
+onValue(ref(db, 'matches'), (snapshot) => { DB.matches = snapshot.val() ? Object.values(snapshot.val()) : []; if(CURRENT_USER) renderCurrentPage(); });
+onValue(ref(db, 'projects'), (snapshot) => { DB.projects = snapshot.val() ? Object.values(snapshot.val()) : []; if(CURRENT_USER) renderCurrentPage(); });
+onValue(ref(db, 'announcements'), (snapshot) => { DB.announcements = snapshot.val() ? Object.values(snapshot.val()) : []; if(CURRENT_USER) renderCurrentPage(); });
 
-function getCurrentPage() {
-  const active = document.querySelector('.menu-item.active');
-  return active ? active.id.replace('menu-', '') : 'dashboard';
+function renderCurrentPage() {
+  const main = document.getElementById('mainContent');
+  if (!main) return;
+  main.innerHTML = '';
+  if (currentPage === 'dashboard') renderDashboard(main);
+  if (currentPage === 'admin_panel') renderAdminPanel(main);
+  if (currentPage === 'profile') renderProfile(main);
+  if (currentPage === 'documents') renderDocuments(main);
+  if (currentPage === 'projects') renderProjects(main);
+  if (currentPage === 'matching') renderMatching(main);
+  if (currentPage === 'rating') renderRating(main);
+  if (currentPage === 'scholarships') renderScholarships(main);
 }
 
-// Boshlang'ich yuklash
-window.loadFirebaseData();
-
-// Qolgan barcha interfeys funksiyalari (avvalgi kodlardagi kabi, lekin Firebase bilan ishlaydigan)
 window.togglePass = function() { document.getElementById('passContainer').style.display = document.getElementById('loginRole').value === 'admin' ? 'block' : 'none'; };
 window.togglePasswordVisibility = function() { const passInput = document.getElementById('loginPass'); const icon = document.querySelector('.eye-icon'); if (passInput.type === 'password') { passInput.type = 'text'; icon.textContent = '🙈'; } else { passInput.type = 'password'; icon.textContent = '👁️'; } };
 
@@ -327,9 +260,7 @@ window.doLogin = function() {
   if (!name) return alert("Ismingizni kiriting!");
   if (role === 'admin' && pass !== 'kuaf2026') return alert("Admin maxsus kaliti xato!");
   
-  CURRENT_USER = { name: name, role: role, login: name.toLowerCase().replace(/\s/g, '_'), id: 'u_'+Date.now() };
-  
-  // Agar yangi foydalanuvchi bo'lsa, Firebase'ga qo'shish
+  CURRENT_USER = { id: 'u_' + Date.now(), name: name, role: role, login: name.toLowerCase().replace(/\s/g, '_') };
   set(ref(db, 'users/' + CURRENT_USER.id), CURRENT_USER);
   
   document.getElementById('loginScreen').style.display = 'none';
@@ -345,25 +276,16 @@ window.logout = function() { CURRENT_USER = null; document.getElementById('sideb
 window.buildMenu = function() {
   const menu = document.getElementById('sideMenu'); menu.innerHTML = '';
   let items = [{ id: 'dashboard', icon: '📊', label: 'Bosh sahifa' }];
-  
   if (CURRENT_USER.role === 'admin') {
     items.push({ id: 'admin_panel', icon: '🛡️', label: 'Admin Nazorati' });
-    items.push({ id: 'women_network', icon: '👩‍🔬', label: 'Olima Ayollar Tarmog\'i' });
   } else {
     items.push({ id: 'profile', icon: '👤', label: 'Mening profilim' });
-    items.push({ id: 'trajectory', icon: '🎯', label: 'Rivojlanish trayektoriyasi (IRT)' });
     items.push({ id: 'documents', icon: '📂', label: 'Hujjatlar va sertifikatlar' });
     items.push({ id: 'projects', icon: '📁', label: 'Ilmiy loyihalar (Kanban)' });
     items.push({ id: 'matching', icon: '🤝', label: 'Ustoz–Talaba biriktirish' });
-    items.push({ id: 'mentor_journal', icon: '📔', label: 'Mentorlik jurnali' });
   }
-  
-  items.push({ id: 'grants', icon: '🌍', label: 'Grant va tanlovlar radari' });
-  items.push({ id: 'schedule', icon: '📅', label: 'Bo\'sh vaqtlar' });
   items.push({ id: 'rating', icon: '🏆', label: 'Reyting (Top-10)' });
   items.push({ id: 'scholarships', icon: '🏅', label: 'Stipendiyalar (Nizom)' });
-  items.push({ id: 'guides', icon: '📘', label: 'DGU va Patent yo\'riqnomasi' });
-  items.push({ id: 'announcements', icon: '📢', label: 'E\'lonlar taxtasi' });
   
   items.forEach(item => {
     const div = document.createElement('div'); div.className = 'menu-item'; div.id = 'menu-' + item.id;
@@ -372,51 +294,139 @@ window.buildMenu = function() {
 };
 
 window.navigate = function(page) {
+  currentPage = page;
   document.querySelectorAll('.menu-item').forEach(m => m.classList.remove('active'));
   const m = document.getElementById('menu-' + page); if (m) m.classList.add('active');
-  const titles = { dashboard: 'Bosh sahifa', admin_panel: 'Admin', profile: 'Profil', trajectory: 'IRT', documents: 'Hujjatlar', projects: 'Loyihalar', matching: 'Moslashtirish', mentor_journal: 'Mentorlik jurnali', grants: 'Grantlar', schedule: 'Bo\'sh vaqtlar', rating: 'Reyting', scholarships: 'Stipendiyalar', guides: 'DGU/Patent', announcements: 'E\'lonlar', women_network: 'Olima Ayollar' };
+  const titles = { dashboard: 'Bosh sahifa', admin_panel: 'Admin', profile: 'Profil', documents: 'Hujjatlar', projects: 'Loyihalar', matching: 'Moslashtirish', rating: 'Reyting', scholarships: 'Stipendiyalar' };
   document.getElementById('breadcrumb').textContent = 'Asosiy / ' + (titles[page] || '');
-  const main = document.getElementById('mainContent'); main.innerHTML = '';
-  Object.values(charts).forEach(c=>c&&c.destroy()); charts = {};
-  
-  if (page === 'dashboard') renderDashboard(main);
-  if (page === 'admin_panel') renderAdminPanel(main);
-  if (page === 'women_network') renderWomenNetwork(main);
-  if (page === 'profile') renderProfile(main);
-  if (page === 'trajectory') renderTrajectory(main);
-  if (page === 'documents') renderDocuments(main);
-  if (page === 'projects') renderProjects(main);
-  if (page === 'matching') renderMatching(main);
-  if (page === 'mentor_journal') renderMentorJournal(main);
-  if (page === 'grants') renderGrants(main);
-  if (page === 'schedule') renderSchedule(main);
-  if (page === 'rating') renderRating(main);
-  if (page === 'scholarships') renderScholarships(main);
-  if (page === 'guides') renderGuides(main);
-  if (page === 'announcements') renderAnnouncements(main);
+  renderCurrentPage();
 };
 
 window.showToast = function(msg) { const box = document.getElementById('toastBox'); const t = document.createElement('div'); t.className = 'toast'; t.innerHTML = `<span>✈️</span> <div>${msg}</div>`; box.appendChild(t); setTimeout(() => t.remove(), 4000); };
 
-// QOLGAN FUNKSIYALAR (renderDashboard, renderProfile va h.k.)
-// ... (avvalgi kodlardagi kabi, faqat Firebase'ga yozadigan joylarini o'zgartirdik)
-// Masalan:
+// --- ASOSIY SAHIFALAR ---
+function renderDashboard(main) {
+  const totalOlima = DB.users.filter(u=>u.role==='Ustoz').length;
+  const totalTalaba = DB.users.filter(u=>u.role==='Talaba').length;
+  main.innerHTML = `<div class="page-title">Bosh sahifa</div><div class="kpi-grid"><div class="kpi"><div class="label">Ustozlar</div><div class="value">${totalOlima}</div></div><div class="kpi"><div class="label">Talabalar</div><div class="value">${totalTalaba}</div></div><div class="kpi"><div class="label">Hujjatlar</div><div class="value">${DB.docs.length}</div></div></div>`;
+}
+
+function renderProfile(main) {
+  main.innerHTML = `
+    <div class="page-title">Mening profilim</div>
+    <div class="profile-head">
+      <div class="profile-photo"><div style="text-align:center;color:var(--muted);font-size:12px">📷<br>Rasm<br>yuklash</div></div>
+      <div class="profile-info">
+        <h2>${CURRENT_USER.name}</h2>
+        <div class="id">Login: ${CURRENT_USER.login}</div>
+        <div class="tags"><span class="tag">${CURRENT_USER.role}</span><span class="tag" style="background:#d1fae5;color:#065f46">✓ Tasdiqlangan</span></div>
+      </div>
+    </div>
+  `;
+}
+
+function renderDocuments(main) {
+  main.innerHTML = `
+    <div class="page-title">Hujjatlar va sertifikatlar</div>
+    <div class="card">
+      <h3>📂 Yangi hujjat yuklash</h3>
+      <div class="form-grid">
+        <div class="form-group"><label>Hujjat turi</label><select id="docType"><option>Ilmiy maqola</option><option>Ilmiy tezis</option><option>Patent</option><option>Til sertifikati (IELTS/CEFR)</option></select></div>
+        <div class="form-group"><label>Hammualliflar</label><input type="text" id="docCoAuthors" placeholder="Masalan: KARIMOVA NODIRA"></div>
+        <div class="form-group"><label>Fayl tanlang</label><input type="file" id="docFile"></div>
+      </div>
+      <button class="btn" style="margin-top:16px" onclick="uploadNewDoc()">➕ Yuklash</button>
+    </div>
+    <div class="card">
+      <h3>📋 Mening hujjatlarim</h3>
+      <table><thead><tr><th>Fayl nomi</th><th>Turi</th><th>Holat</th><th>Ball</th></tr></thead><tbody>
+        ${DB.docs.filter(d => d.user === CURRENT_USER.name).map(d => `<tr><td>${d.name}</td><td>${d.type}</td><td><span class="badge ${d.status==='approved'?'ok':'pending'}">${d.status==='approved'?'Tasdiqlangan':'Kutilmoqda'}</span></td><td><b style="color:var(--red)">${d.status==='approved' ? '+'+d.score : '—'}</b></td></tr>`).join('')}
+      </tbody></table>
+    </div>
+  `;
+}
+
 window.uploadNewDoc = function() {
-  const type = document.getElementById('docType').value; const coAuthors = document.getElementById('docCoAuthors').value.trim(); const file = document.getElementById('docFile').files[0];
+  const type = document.getElementById('docType').value;
+  const coAuthors = document.getElementById('docCoAuthors').value.trim();
+  const file = document.getElementById('docFile').files[0];
   if (!file) return showToast("Fayl tanlanmagan!");
-  const exists = DB.docs.find(d => d.name === file.name && d.user === CURRENT_USER.name);
-  if (exists) { alert("XATO: Bu fayl allaqachon yuklangan!"); return; }
-  
-  const newDoc = { id: Date.now(), name: file.name, type: type, cat: type, user: CURRENT_USER.name, coAuthors: coAuthors, status: 'pending', score: 0 };
-  
-  // Firebase'ga saqlash
+  const newDoc = { id: 'doc_' + Date.now(), name: file.name, type: type, user: CURRENT_USER.name, coAuthors: coAuthors, status: 'pending', score: 0 };
   set(ref(db, 'docs/' + newDoc.id), newDoc);
-  
-  showToast("Hujjat yuklandi. Admin baholashini kuting."); navigate('documents');
+  showToast("Hujjat yuklandi!"); navigate('documents');
 };
 
-// Boshqa barcha funksiyalarni ham shu tarzda Firebase'ga bog'lash kerak...
-// (Qolgan kod avvalgi fayldan olinadi, faqat ma'lumotlar `DB` ga emas, to'g'ridan-to'g'ri `set(ref(db, ...))` ga yoziladi)
+function renderAdminPanel(main) {
+  main.innerHTML = `
+    <div class="page-title">Admin Nazorati</div>
+    <div class="card">
+      <h3>⏳ Tasdiqlash kutayotganlar</h3>
+      <table><thead><tr><th>Muallif</th><th>Fayl / Turi</th><th>Amal</th></tr></thead><tbody>
+        ${DB.docs.filter(d => d.status === 'pending').map(d => `<tr><td><b>${d.user}</b></td><td>${d.name} (${d.type})</td><td><button class="btn btn-sm btn-green" onclick="openScoreModal('${d.id}', '${d.user}', '${d.type}')">⚖️ Baholash</button></td></tr>`).join('')}
+      </tbody></table>
+    </div>
+  `;
+}
+
+window.openScoreModal = function(docId, userName, docType) {
+  currentApproveDocId = docId;
+  document.getElementById('modalUserName').value = userName;
+  document.getElementById('modalDocName').value = docType;
+  document.getElementById('modalScore').value = SCORE_RULES[docType] || 5;
+  document.getElementById('scoreModal').style.display = 'flex';
+};
+
+window.closeModal = function() { document.getElementById('scoreModal').style.display = 'none'; currentApproveDocId = null; };
+
+window.confirmScore = function() {
+  const score = parseInt(document.getElementById('modalScore').value);
+  const doc = DB.docs.find(d => d.id === currentApproveDocId);
+  if (doc) {
+    doc.status = 'approved';
+    doc.score = score;
+    set(ref(db, 'docs/' + doc.id), doc);
+    showToast(`Tasdiqlandi! ${score} ball qo'shildi.`);
+  }
+  closeModal(); navigate('admin_panel');
+};
+
+function renderProjects(main) {
+  main.innerHTML = `<div class="page-title">Ilmiy loyihalar (Kanban)</div><div class="card"><h3>📁 Mening loyihalarim <button class="btn btn-sm btn-green" onclick="document.getElementById('projectModal').style.display='flex'">➕ Yangi loyiha</button></h3>
+    <div class="kanban-board">
+      ${["Reja", "Jarayonda", "Tugallangan"].map(stage => `<div class="kanban-col"><h4>${stage}</h4>${DB.projects.filter(p=>p.stage===stage).map(p=>`<div class="kanban-card"><b>${p.name}</b><small>Rahbar: ${p.owner}</small></div>`).join('')}</div>`).join('')}
+    </div>
+  </div>`;
+}
+
+window.saveProject = function() {
+  const name = document.getElementById('projName').value.trim();
+  const owner = document.getElementById('projOwner').value.trim();
+  const budget = document.getElementById('projBudget').value.trim();
+  if (!name || !owner) return alert("Nom va rahbarni kiriting!");
+  const newProj = { id: 'proj_' + Date.now(), name: name, owner: owner, budget: budget || "Ko'rsatilmagan", stage: "Reja" };
+  set(ref(db, 'projects/' + newProj.id), newProj);
+  document.getElementById('projectModal').style.display = 'none';
+  navigate('projects');
+};
+
+function renderMatching(main) {
+  main.innerHTML = `<div class="page-title">Ustoz–Talaba moslashtirish</div>
+    <div class="card"><h3>👩‍🏫 Ustozlar ro'yxati</h3><ul>${DB.users.filter(u=>u.role==='Ustoz').map(u=>`<li style="padding:10px;border-bottom:1px solid #eee"><b>${u.name}</b> <button class="btn btn-sm" onclick="sendReq('${u.name}')">📩 So'rov</button></li>`).join('')}</ul></div>
+  `;
+}
+
+window.sendReq = function(mentorName) {
+  const newMatch = { id: 'm_' + Date.now(), mentor: mentorName, student: CURRENT_USER.name, date: new Date().toLocaleDateString('uz-UZ') };
+  set(ref(db, 'matches/' + newMatch.id), newMatch);
+  showToast(`${mentorName}ga so'rov yuborildi!`);
+};
+
+function renderRating(main) {
+  const sortedDocs = DB.docs.filter(d=>d.status==='approved').sort((a,b)=>b.score-a.score);
+  main.innerHTML = `<div class="page-title">Reyting (Top-10)</div><div class="card"><h3>🏆 Tasdiqlangan ishlar reytingi</h3><table><thead><tr><th>O'rin</th><th>Muallif</th><th>Fayl</th><th>Ball</th></tr></thead><tbody>${sortedDocs.slice(0,10).map((d,i)=>`<tr><td>${i+1}</td><td>${d.user}</td><td>${d.name}</td><td><b style="color:var(--red)">${d.score} ball</b></td></tr>`).join('')}</tbody></table></div>`;
+}
+
+function renderScholarships(main) { main.innerHTML = `<div class="page-title">Stipendiyalar</div><div class="card"><p>Barcha nizomlar va ariza shablonlari joylangan.</p></div>`; }
 </script>
 </body>
 </html>
